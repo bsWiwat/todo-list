@@ -3,6 +3,8 @@ import Calendar from "@/components/dashboard/Calendar";
 import { Plus } from "lucide-react";
 import { Task } from "@/models/task";
 import Upcoming from "@/components/dashboard/Upcoming";
+import TaskFilters from "@/components/tasks/TaskFilters";
+import TaskCard from "@/components/tasks/TaskCard";
 
 export default function Home() {
   const tasks: Task[] = [];
@@ -43,6 +45,15 @@ export default function Home() {
 
           <div>
             <Upcoming tasks={tasks} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4 mt-8">
+          <TaskFilters />
+          <div className="mt-4">
+            {tasks.map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))}
           </div>
         </div>
       </div>
