@@ -1,7 +1,19 @@
 import Status from "@/components/tasks/Status";
+import Calendar from "@/components/dashboard/Calendar";
 import { Plus } from "lucide-react";
+import { Task } from "@/models/task";
+import Upcoming from "@/components/dashboard/Upcoming";
 
 export default function Home() {
+  const tasks: Task[] = [];
+  tasks[0] = {
+    id: "1",
+    title: "Design dashboard layout",
+    category: "Work",
+    status: "pending",
+    dueDate: new Date(),
+    priority: "high",
+  };
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -22,6 +34,16 @@ export default function Home() {
 
         <div>
           <Status tasks={[]} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          <div className="lg:col-span-2">
+            <Calendar />
+          </div>
+
+          <div>
+            <Upcoming tasks={tasks} />
+          </div>
         </div>
       </div>
     </>
