@@ -10,7 +10,7 @@ export default function Home() {
   const tasks: Task[] = [];
   tasks[0] = {
     id: "1",
-    title: "Design dashboard layout",
+    title: "Design dashboard layout lomem ipsum dolor sit amet consectetur adipiscing elit",
     category: "Work",
     status: "pending",
     dueDate: new Date(),

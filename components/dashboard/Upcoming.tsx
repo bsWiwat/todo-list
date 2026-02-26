@@ -17,8 +17,14 @@ function Section({
   openSection,
   setOpenSection,
 }: SectionProps) {
+  const priorityColor = {
+    high: "bg-red-100 text-red-600",
+    medium: "bg-yellow-100 text-yellow-600",
+    low: "bg-green-100 text-green-600",
+  };
+
   return (
-    <div className="border-b pb-3">
+    <div className="border-b border-gray-200 pb-4">
       <button
         onClick={() => setOpenSection(openSection === name ? null : name)}
         className="w-full flex justify-between items-center font-semibold py-2"
@@ -33,10 +39,38 @@ function Section({
             <p className="text-sm text-gray-400">No tasks</p>
           ) : (
             data.map((task) => (
-              <div key={task.id} className="bg-gray-50 p-2 rounded-lg text-sm">
-                {task.title}
+              <div
+                key={task.id}
+                className="flex justify-between bg-gray-50 p-2 rounded-lg text-sm"
+              >
+                <div
+                  className={`truncate max-w-[70%] ${
+                    task.status === "completed"
+                      ? "line-through text-gray-400"
+                      : ""
+                  }`}
+                >
+                  {task.title}
+                </div>
+                {task.priority && (
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      priorityColor[task.priority]
+                    }`}
+                  >
+                    {task.priority}
+                  </span>
+                )}
               </div>
             ))
+          )}
+
+          {data.length > 5 && (
+            <div className="flex justify-end">
+              <button className="text-xs text-blue-500 hover:underline mt-1">
+                Show more ▼
+              </button>
+            </div>
           )}
         </div>
       )}
