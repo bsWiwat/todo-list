@@ -4,7 +4,7 @@ export type Task = {
   description?: string;
   category: string;
   priority: "low" | "medium" | "high";
-  status: "pending" | "completed" | "overdue";
+  status?: "pending" | "on-time" | "completed" | "overdue";
   dueDate?: Date;
 };
 
