@@ -1,5 +1,6 @@
 "use client";
-import { Task } from "@/models/task";
+import { Task, TASK_STATUS, TASK_PRIORITY } from "@/models/task";
+import { CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
 
 type SectionProps = {
@@ -17,10 +18,16 @@ function Section({
   openSection,
   setOpenSection,
 }: SectionProps) {
-  const priorityColor = {
-    high: "bg-red-100 text-red-600",
-    medium: "bg-yellow-100 text-yellow-600",
-    low: "bg-green-100 text-green-600",
+  const priorityColor: Record<string, string> = {
+    [TASK_PRIORITY.HIGH]: "bg-red-100 text-red-600",
+    [TASK_PRIORITY.MEDIUM]: "bg-yellow-100 text-yellow-600",
+    [TASK_PRIORITY.LOW]: "bg-green-100 text-green-600",
+  };
+
+  const priorityLabel: Record<string, string> = {
+    [TASK_PRIORITY.HIGH]: "High",
+    [TASK_PRIORITY.MEDIUM]: "Medium",
+    [TASK_PRIORITY.LOW]: "Low",
   };
 
   return (
@@ -38,39 +45,42 @@ function Section({
           {data.length === 0 ? (
             <p className="text-sm text-gray-400">No tasks</p>
           ) : (
-            data.map((task) => (
-              <div
-                key={task.id}
-                className="flex justify-between bg-gray-50 p-2 rounded-lg text-sm"
-              >
+            data.map((task) => {
+              const isCompleted = task.status_code === TASK_STATUS.COMPLETED;
+
+              return (
                 <div
-                  className={`truncate max-w-[70%] ${
-                    task.status === "completed"
-                      ? "line-through text-gray-400"
-                      : ""
-                  }`}
+                  key={task.id}
+                  className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm"
                 >
-                  {task.title}
-                </div>
-                {task.priority && (
+                  <div className="flex items-center max-w-[70%] truncate">
+                    {isCompleted ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" />
+                    )}
+
+                    <span
+                      className={`truncate ${
+                        isCompleted
+                          ? "line-through text-gray-400"
+                          : "text-gray-800"
+                      }`}
+                    >
+                      {task.title}
+                    </span>
+                  </div>
+
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
-                      priorityColor[task.priority]
+                      priorityColor[task.priority_code]
                     }`}
                   >
-                    {task.priority}
+                    {priorityLabel[task.priority_code]}
                   </span>
-                )}
-              </div>
-            ))
-          )}
-
-          {data.length > 5 && (
-            <div className="flex justify-end">
-              <button className="text-xs text-blue-500 hover:underline mt-1">
-                Show more ▼
-              </button>
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
@@ -88,21 +98,21 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
   const isSameDay = (d1: Date, d2: Date) =>
     d1.toDateString() === d2.toDateString();
 
-  const todayTasks = tasks.filter((t) =>
-    isSameDay(new Date(t.dueDate || new Date()), today),
+  const todayTasks = tasks.filter(
+    (t) => t.due_date && isSameDay(new Date(t.due_date), today),
   );
 
-  const tomorrowTasks = tasks.filter((t) =>
-    isSameDay(new Date(t.dueDate || new Date()), tomorrow),
+  const tomorrowTasks = tasks.filter(
+    (t) => t.due_date && isSameDay(new Date(t.due_date), tomorrow),
   );
 
   const afterTasks = tasks.filter((t) => {
-    const due = new Date(t.dueDate || new Date());
-    return due > tomorrow;
+    if (!t.due_date) return false;
+    return new Date(t.due_date) > tomorrow;
   });
 
   return (
-    <div className="rounded-xl bg-card text-card-foreground p-6 border-0 shadow-sm">
+    <div className="rounded-xl bg-white p-6 shadow-sm">
       <h2 className="text-lg font-bold mb-4">Upcoming</h2>
 
       <Section

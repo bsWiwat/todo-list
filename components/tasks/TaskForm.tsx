@@ -1,6 +1,6 @@
 "use client";
 
-import { Task } from "@/models/task";
+import { Task, TASK_PRIORITY, TASK_STATUS } from "@/models/task";
 import { useState } from "react";
 type Props = {
   onSubmit: (task: Task) => void;
@@ -23,8 +23,36 @@ export default function TaskForm({ onSubmit }: Props) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const payload = {
+      user_id: "",
+      title: form.title,
+      description: form.desc,
+      status_code: TASK_STATUS.PENDING,
+      priority_code:
+        form.priority === "low"
+          ? TASK_PRIORITY.LOW
+          : form.priority === "medium"
+            ? TASK_PRIORITY.MEDIUM
+            : TASK_PRIORITY.HIGH,
+      category: form.category,
+      due_date: form.dueDate,
+    };
+
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const newTask = await res.json();
+    onSubmit(newTask[0]);
+  };
+
   return (
-    <form className="bg-white p-6  shadow-sm  space-y-5">
+    <form onSubmit={handleSubmit} className=" p-6 space-y-5">
       {/* Title */}
       <h1 className="text-2xl font-bold mb-4">Create New Task</h1>
       <div>

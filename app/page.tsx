@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Status from "@/components/tasks/Status";
 import Calendar from "@/components/dashboard/Calendar";
 import { Plus } from "lucide-react";
@@ -10,23 +10,23 @@ import TaskCard from "@/components/tasks/TaskCard";
 import TaskForm from "@/components/tasks/TaskForm";
 
 export default function Home() {
-  const tasks: Task[] = [];
-  tasks[0] = {
-    id: "1",
-    title:
-      "Design dashboard layout lomem ipsum dolor sit amet consectetur adipiscing elit",
-    category: "Work",
-    status: "pending",
-    dueDate: new Date(),
-    priority: "high",
-  };
-
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const res = await fetch("/api/tasks");
+      const data = await res.json();
+      setTasksList(data);
+    };
+
+    fetchTasks();
+  }, []);
+
   const handleAddTask = (task: Task) => {
-    setTasksList([...tasksList, { ...task, id: crypto.randomUUID() }]);
+    setTasksList((prev) => [task, ...prev]);
   };
+
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -54,18 +54,18 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <div className="lg:col-span-2">
-            <Calendar />
+            <Calendar tasks={tasksList} />
           </div>
 
           <div>
-            <Upcoming tasks={tasks} />
+            <Upcoming tasks={tasksList} />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4 mt-8">
+        <div className="p-4 mb-4 mt-8">
           <TaskFilters />
           <div className="mt-4">
-            {tasks.map((task) => (
+            {tasksList.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}
           </div>
