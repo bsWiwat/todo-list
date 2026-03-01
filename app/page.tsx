@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Status from "@/components/tasks/Status";
 import Calendar from "@/components/dashboard/Calendar";
 import { Plus } from "lucide-react";
-import { Task } from "@/models/task";
+import { Task, TASK_STATUS } from "@/models/task";
 import Upcoming from "@/components/dashboard/Upcoming";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import TaskCard from "@/components/tasks/TaskCard";
@@ -12,6 +12,7 @@ import TaskForm from "@/components/tasks/TaskForm";
 export default function Home() {
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -25,6 +26,42 @@ export default function Home() {
 
   const handleAddTask = (task: Task) => {
     setTasksList((prev) => [task, ...prev]);
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+
+    setTasksList((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleToggleStatus = async (task: Task) => {
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...task,
+        status_code:
+          task.status_code === TASK_STATUS.COMPLETED
+            ? TASK_STATUS.PENDING
+            : TASK_STATUS.COMPLETED,
+      }),
+    });
+
+    const updated = await res.json();
+
+    setTasksList((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+  };
+
+  const handleEditTask = async (updatedTask: Task) => {
+    const res = await fetch(`/api/tasks/${updatedTask.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedTask),
+    });
+
+    const data = await res.json();
+
+    setTasksList((prev) => prev.map((t) => (t.id === data.id ? data : t)));
   };
 
   return (
@@ -58,7 +95,7 @@ export default function Home() {
           </div>
 
           <div>
-            <Upcoming tasks={tasksList} />
+            <Upcoming tasks={tasksList} onToggle={handleToggleStatus} />
           </div>
         </div>
 
@@ -66,7 +103,16 @@ export default function Home() {
           <TaskFilters />
           <div className="mt-4">
             {tasksList.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                onDelete={handleDeleteTask}
+                onToggle={handleToggleStatus}
+                onEdit={(task) => {
+                  setEditingTask(task);
+                  setIsOpen(true);
+                }}
+              />
             ))}
           </div>
         </div>
@@ -74,23 +120,35 @@ export default function Home() {
         {isOpen && (
           <div
             className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              setEditingTask(null);
+            }}
           >
             <div
               className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false);
+                  setEditingTask(null);
+                }}
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
               >
                 ✕
               </button>
 
               <TaskForm
-                onSubmit={(task) => {
-                  handleAddTask(task);
+                initialData={editingTask}
+                onSubmit={async (task) => {
+                  if (editingTask) {
+                    await handleEditTask(task);
+                  } else {
+                    handleAddTask(task);
+                  }
                   setIsOpen(false);
+                  setEditingTask(null);
                 }}
               />
             </div>
