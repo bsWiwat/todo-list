@@ -1,18 +1,38 @@
 "use client";
 
 import { Task, TASK_PRIORITY, TASK_STATUS } from "@/models/task";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 type Props = {
   onSubmit: (task: Task) => void;
+  initialData?: Task | null;
 };
 
-export default function TaskForm({ onSubmit }: Props) {
-  const [form, setForm] = useState({
-    title: "",
-    desc: "",
-    category: "",
-    priority: "medium",
-    dueDate: "",
+export default function TaskForm({ onSubmit, initialData }: Props) {
+  const [form, setForm] = useState(() => {
+    if (initialData) {
+      return {
+        title: initialData.title,
+        desc: initialData.description || "",
+        category: initialData.category || "",
+        priority:
+          initialData.priority_code === TASK_PRIORITY.LOW
+            ? "low"
+            : initialData.priority_code === TASK_PRIORITY.MEDIUM
+              ? "medium"
+              : "high",
+        dueDate: initialData.due_date
+          ? new Date(initialData.due_date).toISOString().slice(0, 16)
+          : "",
+      };
+    }
+    return {
+      title: "",
+      desc: "",
+      category: "",
+      priority: "medium",
+      dueDate: "",
+    };
   });
 
   const handleChange = (
@@ -27,10 +47,9 @@ export default function TaskForm({ onSubmit }: Props) {
     e.preventDefault();
 
     const payload = {
-      user_id: "",
       title: form.title,
       description: form.desc,
-      status_code: TASK_STATUS.PENDING,
+      status_code: initialData ? initialData.status_code : TASK_STATUS.PENDING,
       priority_code:
         form.priority === "low"
           ? TASK_PRIORITY.LOW
@@ -41,19 +60,31 @@ export default function TaskForm({ onSubmit }: Props) {
       due_date: form.dueDate,
     };
 
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    if (initialData) {
+      // UPDATE
+      const res = await fetch(`/api/tasks/${initialData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const newTask = await res.json();
-    onSubmit(newTask[0]);
+      const updated = await res.json();
+      onSubmit(updated);
+    } else {
+      // CREATE
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const newTask = await res.json();
+      onSubmit(newTask[0]);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className=" p-6 space-y-5">
-      {/* Title */}
       <h1 className="text-2xl font-bold mb-4">Create New Task</h1>
       <div>
         <label className="block text-sm font-medium mb-1">Title</label>
@@ -66,7 +97,6 @@ export default function TaskForm({ onSubmit }: Props) {
         />
       </div>
 
-      {/* Description */}
       <div>
         <label className="block text-sm font-medium mb-1">Description</label>
         <textarea
@@ -79,7 +109,6 @@ export default function TaskForm({ onSubmit }: Props) {
         />
       </div>
 
-      {/* Category | Priority */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Category</label>
@@ -111,7 +140,6 @@ export default function TaskForm({ onSubmit }: Props) {
         </div>
       </div>
 
-      {/* Due Date */}
       <div>
         <label className="block text-sm font-medium mb-1">Due Date</label>
         <input
@@ -123,12 +151,11 @@ export default function TaskForm({ onSubmit }: Props) {
         />
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
-        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+        className="w-full bg-violet-600 text-white py-2 rounded-lg hover:bg-violet-700 transition"
       >
-        Create Task
+        {initialData ? "Update Task" : "Create Task"}
       </button>
     </form>
   );

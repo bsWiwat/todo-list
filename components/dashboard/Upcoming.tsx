@@ -1,5 +1,5 @@
 "use client";
-import { Task, TASK_STATUS, TASK_PRIORITY } from "@/models/task";
+import { Task, TASK_STATUS, priorityColor, priorityLabel } from "@/models/task";
 import { CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
 
@@ -9,6 +9,7 @@ type SectionProps = {
   name: string;
   openSection: string | null;
   setOpenSection: (name: string | null) => void;
+  onToggle: (task: Task) => void;
 };
 
 function Section({
@@ -17,19 +18,8 @@ function Section({
   name,
   openSection,
   setOpenSection,
+  onToggle,
 }: SectionProps) {
-  const priorityColor: Record<string, string> = {
-    [TASK_PRIORITY.HIGH]: "bg-red-100 text-red-600",
-    [TASK_PRIORITY.MEDIUM]: "bg-yellow-100 text-yellow-600",
-    [TASK_PRIORITY.LOW]: "bg-green-100 text-green-600",
-  };
-
-  const priorityLabel: Record<string, string> = {
-    [TASK_PRIORITY.HIGH]: "High",
-    [TASK_PRIORITY.MEDIUM]: "Medium",
-    [TASK_PRIORITY.LOW]: "Low",
-  };
-
   return (
     <div className="border-b border-gray-200 pb-4">
       <button
@@ -54,11 +44,13 @@ function Section({
                   className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm"
                 >
                   <div className="flex items-center max-w-[70%] truncate">
-                    {isCompleted ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" />
-                    )}
+                    <button onClick={() => onToggle(task)}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-gray-400 hover:text-violet-600" />
+                      )}
+                    </button>
 
                     <span
                       className={`truncate ${
@@ -88,27 +80,34 @@ function Section({
   );
 }
 
-export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
+export default function Upcoming({
+  tasks = [],
+  onToggle,
+}: {
+  tasks?: Task[];
+  onToggle: (task: Task) => void;
+}) {
   const [openSection, setOpenSection] = useState<string | null>("today");
 
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
+  const formatDateOnly = (date: Date) => date.toISOString().split("T")[0];
 
-  const isSameDay = (d1: Date, d2: Date) =>
-    d1.toDateString() === d2.toDateString();
+  const todayStr = formatDateOnly(new Date());
+
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = formatDateOnly(tomorrowDate);
 
   const todayTasks = tasks.filter(
-    (t) => t.due_date && isSameDay(new Date(t.due_date), today),
+    (t) => t.due_date && t.due_date.split("T")[0] === todayStr,
   );
 
   const tomorrowTasks = tasks.filter(
-    (t) => t.due_date && isSameDay(new Date(t.due_date), tomorrow),
+    (t) => t.due_date && t.due_date.split("T")[0] === tomorrowStr,
   );
 
   const afterTasks = tasks.filter((t) => {
     if (!t.due_date) return false;
-    return new Date(t.due_date) > tomorrow;
+    return t.due_date.split("T")[0] > tomorrowStr;
   });
 
   return (
@@ -121,6 +120,7 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="today"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
 
       <Section
@@ -129,6 +129,7 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="tomorrow"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
 
       <Section
@@ -137,6 +138,7 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="after"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
     </div>
   );

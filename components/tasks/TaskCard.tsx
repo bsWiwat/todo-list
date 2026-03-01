@@ -1,11 +1,14 @@
-import { CheckCircle2, Circle, Calendar } from "lucide-react";
-import { Task, TASK_STATUS, TASK_PRIORITY } from "@/models/task";
+import { CheckCircle2, Circle, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Task, TASK_STATUS, TASK_PRIORITY, priorityLabel } from "@/models/task";
 
 type Props = {
   task: Task;
+  onDelete: (id: string) => void;
+  onToggle: (task: Task) => void;
+  onEdit: (task: Task) => void;
 };
 
-export default function TaskCard({ task }: Props) {
+export default function TaskCard({ task, onDelete, onToggle, onEdit }: Props) {
   const isCompleted = task.status_code === TASK_STATUS.COMPLETED;
 
   const isOverdue =
@@ -15,12 +18,6 @@ export default function TaskCard({ task }: Props) {
     [TASK_PRIORITY.HIGH]: "bg-red-100 text-red-600",
     [TASK_PRIORITY.MEDIUM]: "bg-yellow-100 text-yellow-600",
     [TASK_PRIORITY.LOW]: "bg-green-100 text-green-600",
-  };
-
-  const priorityLabel: Record<string, string> = {
-    [TASK_PRIORITY.HIGH]: "High",
-    [TASK_PRIORITY.MEDIUM]: "Medium",
-    [TASK_PRIORITY.LOW]: "Low",
   };
 
   return (
@@ -40,11 +37,23 @@ export default function TaskCard({ task }: Props) {
           )}
         </div>
 
-        {isCompleted ? (
-          <CheckCircle2 className="w-5 h-5 text-green-500" />
-        ) : (
-          <Circle className="w-5 h-5 text-gray-400" />
-        )}
+        <div className="flex gap-2 items-center">
+          <button onClick={() => onToggle(task)}>
+            {isCompleted ? (
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+            ) : (
+              <Circle className="w-5 h-5 text-gray-400 hover:text-violet-600" />
+            )}
+          </button>
+
+          <button onClick={() => onEdit(task)}>
+            <Pencil className="w-4 h-4 text-gray-400 hover:text-blue-600" />
+          </button>
+
+          <button onClick={() => onDelete(task.id)}>
+            <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-between items-center">
@@ -55,7 +64,7 @@ export default function TaskCard({ task }: Props) {
             }`}
           >
             <Calendar className="w-4 h-4 mr-1" />
-            {new Date(task.due_date).toLocaleDateString()}
+            {task.due_date?.slice(0, 10)}
           </div>
         )}
 
