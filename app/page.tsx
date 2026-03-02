@@ -1,32 +1,77 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Status from "@/components/tasks/Status";
 import Calendar from "@/components/dashboard/Calendar";
 import { Plus } from "lucide-react";
-import { Task } from "@/models/task";
+import { Task, TASK_STATUS } from "@/models/task";
 import Upcoming from "@/components/dashboard/Upcoming";
 import TaskFilters from "@/components/tasks/TaskFilters";
 import TaskCard from "@/components/tasks/TaskCard";
 import TaskForm from "@/components/tasks/TaskForm";
 
 export default function Home() {
-  const tasks: Task[] = [];
-  tasks[0] = {
-    id: "1",
-    title:
-      "Design dashboard layout lomem ipsum dolor sit amet consectetur adipiscing elit",
-    category: "Work",
-    status: "pending",
-    dueDate: new Date(),
-    priority: "high",
-  };
-
-  const [tasksList, setTasksList] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const res = await fetch("/api/tasks");
+      const data = await res.json();
+      setTasks(data);
+      setFilteredTasks(data);
+    };
+
+    fetchTasks();
+  }, []);
 
   const handleAddTask = (task: Task) => {
-    setTasksList([...tasksList, { ...task, id: crypto.randomUUID() }]);
+    setTasks((prev) => [task, ...prev]);
+    setFilteredTasks((prev) => [task, ...prev]);
   };
+
+  const handleDeleteTask = async (id: string) => {
+    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setFilteredTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const handleToggleStatus = async (task: Task) => {
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...task,
+        status_code:
+          task.status_code === TASK_STATUS.COMPLETED
+            ? TASK_STATUS.PENDING
+            : TASK_STATUS.COMPLETED,
+      }),
+    });
+
+    const updated = await res.json();
+
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    setFilteredTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? updated : t)),
+    );
+  };
+
+  const handleEditTask = async (updatedTask: Task) => {
+    const res = await fetch(`/api/tasks/${updatedTask.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedTask),
+    });
+
+    const data = await res.json();
+
+    setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+    setFilteredTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+  };
+
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -49,24 +94,33 @@ export default function Home() {
         </div>
 
         <div>
-          <Status tasks={tasksList} />
+          <Status tasks={tasks} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <div className="lg:col-span-2">
-            <Calendar />
+            <Calendar tasks={tasks} />
           </div>
 
           <div>
-            <Upcoming tasks={tasks} />
+            <Upcoming tasks={tasks} onToggle={handleToggleStatus} />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4 mt-8">
-          <TaskFilters />
+        <div className="p-4 mb-4 mt-8">
+          <TaskFilters setTasks={setFilteredTasks} />
           <div className="mt-4">
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+            {filteredTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onDelete={handleDeleteTask}
+                onToggle={handleToggleStatus}
+                onEdit={(task) => {
+                  setEditingTask(task);
+                  setIsOpen(true);
+                }}
+              />
             ))}
           </div>
         </div>
@@ -74,23 +128,35 @@ export default function Home() {
         {isOpen && (
           <div
             className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              setEditingTask(null);
+            }}
           >
             <div
               className="bg-white rounded-xl shadow-lg w-full max-w-lg p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false);
+                  setEditingTask(null);
+                }}
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
               >
                 ✕
               </button>
 
               <TaskForm
-                onSubmit={(task) => {
-                  handleAddTask(task);
+                initialData={editingTask}
+                onSubmit={async (task) => {
+                  if (editingTask) {
+                    await handleEditTask(task);
+                  } else {
+                    handleAddTask(task);
+                  }
                   setIsOpen(false);
+                  setEditingTask(null);
                 }}
               />
             </div>

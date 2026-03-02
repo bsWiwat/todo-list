@@ -1,5 +1,6 @@
 "use client";
-import { Task } from "@/models/task";
+import { Task, TASK_STATUS, priorityColor, priorityLabel } from "@/models/task";
+import { CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
 
 type SectionProps = {
@@ -8,6 +9,7 @@ type SectionProps = {
   name: string;
   openSection: string | null;
   setOpenSection: (name: string | null) => void;
+  onToggle: (task: Task) => void;
 };
 
 function Section({
@@ -16,13 +18,8 @@ function Section({
   name,
   openSection,
   setOpenSection,
+  onToggle,
 }: SectionProps) {
-  const priorityColor = {
-    high: "bg-red-100 text-red-600",
-    medium: "bg-yellow-100 text-yellow-600",
-    low: "bg-green-100 text-green-600",
-  };
-
   return (
     <div className="border-b border-gray-200 pb-4">
       <button
@@ -38,39 +35,44 @@ function Section({
           {data.length === 0 ? (
             <p className="text-sm text-gray-400">No tasks</p>
           ) : (
-            data.map((task) => (
-              <div
-                key={task.id}
-                className="flex justify-between bg-gray-50 p-2 rounded-lg text-sm"
-              >
+            data.map((task) => {
+              const isCompleted = task.status_code === TASK_STATUS.COMPLETED;
+
+              return (
                 <div
-                  className={`truncate max-w-[70%] ${
-                    task.status === "completed"
-                      ? "line-through text-gray-400"
-                      : ""
-                  }`}
+                  key={task.id}
+                  className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-sm"
                 >
-                  {task.title}
-                </div>
-                {task.priority && (
+                  <div className="flex items-center max-w-[70%] truncate">
+                    <button onClick={() => onToggle(task)}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-gray-400 hover:text-violet-600" />
+                      )}
+                    </button>
+
+                    <span
+                      className={`truncate ${
+                        isCompleted
+                          ? "line-through text-gray-400"
+                          : "text-gray-800"
+                      }`}
+                    >
+                      {task.title}
+                    </span>
+                  </div>
+
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
-                      priorityColor[task.priority]
+                      priorityColor[task.priority_code]
                     }`}
                   >
-                    {task.priority}
+                    {priorityLabel[task.priority_code]}
                   </span>
-                )}
-              </div>
-            ))
-          )}
-
-          {data.length > 5 && (
-            <div className="flex justify-end">
-              <button className="text-xs text-blue-500 hover:underline mt-1">
-                Show more ▼
-              </button>
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
@@ -78,31 +80,46 @@ function Section({
   );
 }
 
-export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
+export default function Upcoming({
+  tasks = [],
+  onToggle,
+}: {
+  tasks?: Task[];
+  onToggle: (task: Task) => void;
+}) {
   const [openSection, setOpenSection] = useState<string | null>("today");
 
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
+  const formatDateOnly = (date: Date) => date.toISOString().split("T")[0];
 
-  const isSameDay = (d1: Date, d2: Date) =>
-    d1.toDateString() === d2.toDateString();
+  const todayStr = formatDateOnly(new Date());
 
-  const todayTasks = tasks.filter((t) =>
-    isSameDay(new Date(t.dueDate || new Date()), today),
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = formatDateOnly(tomorrowDate);
+
+  const todayTasks = tasks.filter(
+    (t) => t.due_date && t.due_date.split("T")[0] === todayStr,
   );
 
-  const tomorrowTasks = tasks.filter((t) =>
-    isSameDay(new Date(t.dueDate || new Date()), tomorrow),
+  const tomorrowTasks = tasks.filter(
+    (t) => t.due_date && t.due_date.split("T")[0] === tomorrowStr,
   );
 
   const afterTasks = tasks.filter((t) => {
-    const due = new Date(t.dueDate || new Date());
-    return due > tomorrow;
+    if (!t.due_date) return false;
+    return t.due_date.split("T")[0] > tomorrowStr;
+  });
+
+  const overdueTasks = tasks.filter((t) => {
+    if (!t.due_date) return false;
+    return (
+      t.due_date.split("T")[0] < todayStr &&
+      t.status_code !== TASK_STATUS.COMPLETED
+    );
   });
 
   return (
-    <div className="rounded-xl bg-card text-card-foreground p-6 border-0 shadow-sm">
+    <div className="rounded-xl bg-white p-6 shadow-sm">
       <h2 className="text-lg font-bold mb-4">Upcoming</h2>
 
       <Section
@@ -111,6 +128,7 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="today"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
 
       <Section
@@ -119,6 +137,7 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="tomorrow"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
 
       <Section
@@ -127,6 +146,16 @@ export default function Upcoming({ tasks = [] }: { tasks?: Task[] }) {
         name="after"
         openSection={openSection}
         setOpenSection={setOpenSection}
+        onToggle={onToggle}
+      />
+
+      <Section
+        title="overdue"
+        data={overdueTasks}
+        name="overdue"
+        openSection={openSection}
+        setOpenSection={setOpenSection}
+        onToggle={onToggle}
       />
     </div>
   );
