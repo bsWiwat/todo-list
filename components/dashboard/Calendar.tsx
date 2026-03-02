@@ -11,6 +11,7 @@ export default function Calendar({ tasks }: { tasks: Task[] }) {
       title: task.title,
       date: task.due_date?.split("T")[0],
       backgroundColor: priorityColor[task.priority_code],
+      borderColor: priorityColor[task.priority_code],
     }));
 
   return (

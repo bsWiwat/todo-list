@@ -10,7 +10,8 @@ import TaskCard from "@/components/tasks/TaskCard";
 import TaskForm from "@/components/tasks/TaskForm";
 
 export default function Home() {
-  const [tasksList, setTasksList] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -18,20 +19,23 @@ export default function Home() {
     const fetchTasks = async () => {
       const res = await fetch("/api/tasks");
       const data = await res.json();
-      setTasksList(data);
+      setTasks(data);
+      setFilteredTasks(data);
     };
 
     fetchTasks();
   }, []);
 
   const handleAddTask = (task: Task) => {
-    setTasksList((prev) => [task, ...prev]);
+    setTasks((prev) => [task, ...prev]);
+    setFilteredTasks((prev) => [task, ...prev]);
   };
 
   const handleDeleteTask = async (id: string) => {
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
 
-    setTasksList((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setFilteredTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
   const handleToggleStatus = async (task: Task) => {
@@ -49,7 +53,10 @@ export default function Home() {
 
     const updated = await res.json();
 
-    setTasksList((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+    setFilteredTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? updated : t)),
+    );
   };
 
   const handleEditTask = async (updatedTask: Task) => {
@@ -61,7 +68,8 @@ export default function Home() {
 
     const data = await res.json();
 
-    setTasksList((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+    setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
+    setFilteredTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)));
   };
 
   return (
@@ -86,23 +94,23 @@ export default function Home() {
         </div>
 
         <div>
-          <Status tasks={tasksList} />
+          <Status tasks={tasks} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <div className="lg:col-span-2">
-            <Calendar tasks={tasksList} />
+            <Calendar tasks={tasks} />
           </div>
 
           <div>
-            <Upcoming tasks={tasksList} onToggle={handleToggleStatus} />
+            <Upcoming tasks={tasks} onToggle={handleToggleStatus} />
           </div>
         </div>
 
         <div className="p-4 mb-4 mt-8">
-          <TaskFilters />
+          <TaskFilters setTasks={setFilteredTasks} />
           <div className="mt-4">
-            {tasksList.map((task) => (
+            {filteredTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}

@@ -110,6 +110,14 @@ export default function Upcoming({
     return t.due_date.split("T")[0] > tomorrowStr;
   });
 
+  const overdueTasks = tasks.filter((t) => {
+    if (!t.due_date) return false;
+    return (
+      t.due_date.split("T")[0] < todayStr &&
+      t.status_code !== TASK_STATUS.COMPLETED
+    );
+  });
+
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <h2 className="text-lg font-bold mb-4">Upcoming</h2>
@@ -136,6 +144,15 @@ export default function Upcoming({
         title="After"
         data={afterTasks}
         name="after"
+        openSection={openSection}
+        setOpenSection={setOpenSection}
+        onToggle={onToggle}
+      />
+
+      <Section
+        title="overdue"
+        data={overdueTasks}
+        name="overdue"
         openSection={openSection}
         setOpenSection={setOpenSection}
         onToggle={onToggle}
